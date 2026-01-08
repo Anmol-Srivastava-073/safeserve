@@ -3,309 +3,238 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SafeServe | Biometric Aid Station</title>
+    <title>SafeServe | Real AI Connected</title>
     <style>
-        :root {
-            --bg-color: #202124;
-            --card-bg: #303134;
-            --primary: #8AB4F8; 
-            --success: #81C995; 
-            --warning: #FDD663;
-        }
-
-        body {
-            margin: 0;
-            padding: 0;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            background-color: var(--bg-color);
-            font-family: 'Roboto', sans-serif;
-            color: #E8EAED;
-        }
-
-        #app-container {
-            position: relative;
-            width: 800px;
-            height: 600px;
-            background: var(--card-bg);
-            border-radius: 24px;
-            overflow: hidden;
-            display: flex;
-            flex-direction: column;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.5);
+        :root { --bg: #202124; --card: #303134; --blue: #8AB4F8; --green: #81C995; --yellow: #FDD663; }
+        body { margin: 0; display: flex; justify-content: center; align-items: center; height: 100vh; background: var(--bg); font-family: sans-serif; color: #E8EAED; }
+        
+        #app {
+            position: relative; width: 800px; height: 600px; background: var(--card);
+            border-radius: 24px; overflow: hidden; display: flex; flex-direction: column;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.6);
         }
 
         /* HEADER */
-        .header {
-            padding: 15px 30px;
-            background: rgba(0,0,0,0.3);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            z-index: 20;
-        }
-        .logo span { color: var(--primary); font-weight: bold; }
+        .header { padding: 15px 30px; background: rgba(0,0,0,0.3); display: flex; justify-content: space-between; align-items: center; z-index: 20; }
+        .logo span { color: var(--blue); font-weight: bold; }
 
-        /* CAMERA AREA */
-        #camera-wrapper {
-            position: relative;
-            flex-grow: 1;
-            background: #000;
-            overflow: hidden;
-            /* Flex center to keep video in middle */
-            display: flex;
-            justify-content: center;
-            align-items: center;
+        /* CAMERA - THE MIRROR FIX */
+        #cam-wrapper {
+            position: relative; flex-grow: 1; background: #000; overflow: hidden;
+            display: flex; justify-content: center; align-items: center;
+            /* Flip everything (Video + Box) together */
+            transform: scaleX(-1); 
         }
-
-        video {
-            /* CRITICAL FIX: Use 'contain' so video is never chopped */
-            width: 100%;
-            height: 100%;
-            object-fit: contain; 
-            transform: scaleX(-1);
-        }
-
-        canvas {
-            position: absolute;
-            top: 0;
-            left: 0;
-            /* CRITICAL FIX: Ensure canvas is ABOVE video */
-            z-index: 10; 
-        }
+        video { position: absolute; width: 100%; height: 100%; object-fit: cover; }
+        canvas { position: absolute; top: 0; left: 0; z-index: 10; }
 
         /* UI OVERLAY */
-        .scan-overlay {
-            position: absolute;
-            bottom: 30px;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 90%;
-            padding: 15px 25px;
-            background: rgba(32, 33, 36, 0.9);
-            border-radius: 16px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            z-index: 20;
-            border: 1px solid rgba(255,255,255,0.1);
+        .overlay {
+            position: absolute; bottom: 30px; left: 50%; transform: translateX(50%); /* Unflip text */
+            width: 90%; padding: 15px 25px; background: rgba(32, 33, 36, 0.95);
+            border-radius: 16px; display: flex; justify-content: space-between; align-items: center;
+            z-index: 20; border: 1px solid rgba(255,255,255,0.1);
         }
+        .status { font-weight: 500; color: var(--yellow); display: flex; align-items: center; gap: 10px; }
+        .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--yellow); box-shadow: 0 0 10px var(--yellow); }
+        .btn { background: var(--blue); color: #000; border: none; padding: 12px 24px; border-radius: 30px; font-weight: bold; cursor: pointer; transition: 0.2s; }
+        .btn:disabled { background: #555; color: #888; cursor: not-allowed; }
+        .btn:hover:not(:disabled) { background: #AECBFA; box-shadow: 0 0 15px var(--blue); }
 
-        .status-text {
-            font-size: 16px;
-            font-weight: 500;
-            color: var(--warning);
-            display: flex;
-            align-items: center;
-            gap: 10px;
+        /* RESULT POPUP */
+        #result {
+            display: none; position: absolute; top: 20px; right: 20px; width: 320px;
+            background: var(--card); padding: 20px; border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.6); z-index: 30; border: 1px solid rgba(255,255,255,0.1);
+            animation: popIn 0.3s ease-out;
         }
-
-        .dot {
-            width: 10px;
-            height: 10px;
-            border-radius: 50%;
-            background-color: var(--warning);
-            box-shadow: 0 0 10px var(--warning);
-        }
-
-        .action-btn {
-            background: var(--primary);
-            color: #000;
-            border: none;
-            padding: 12px 24px;
-            border-radius: 30px;
-            font-weight: bold;
-            cursor: pointer;
-        }
-        .action-btn:disabled { background: #555; color: #888; cursor: not-allowed; }
-
-        /* POPUP RESULT */
-        #result-card {
-            display: none;
-            position: absolute;
-            top: 20px;
-            right: 20px;
-            width: 300px;
-            background: var(--card-bg);
-            padding: 20px;
-            border-radius: 12px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-            z-index: 30;
-            border: 1px solid rgba(255,255,255,0.1);
-        }
-        .highlight { color: var(--primary); font-weight: bold; }
+        @keyframes popIn { from {opacity:0; transform:translateY(-10px);} to {opacity:1; transform:translateY(0);} }
+        .res-title { font-size: 12px; color: var(--blue); font-weight: bold; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 1px; }
+        .res-body { font-size: 14px; line-height: 1.6; }
+        strong { color: var(--green); }
     </style>
+    
+    <script type="importmap">
+      {
+        "imports": {
+          "@google/generative-ai": "https://esm.run/@google/generative-ai"
+        }
+      }
+    </script>
+    
     <script defer src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
 </head>
 <body>
 
-    <div id="app-container">
+    <div id="app">
         <div class="header">
-            <div class="logo">SafeServe <span>Kiosk</span></div>
-            <div style="font-size: 12px; color: #9AA0A6;">System Online</div>
+            <div class="logo">SafeServe <span>AI</span></div>
+            <div style="font-size: 12px; color: #aaa;">Status: Online</div>
         </div>
 
-        <div id="camera-wrapper">
+        <div id="cam-wrapper">
             <video id="video" autoplay muted playsinline></video>
-            </div>
-
-        <div id="result-card">
-            <div style="font-size:12px; color:var(--primary); margin-bottom:5px;">✨ Gemini Analysis</div>
-            <div id="result-text">Processing...</div>
         </div>
 
-        <div class="scan-overlay">
-            <div class="status-text" id="status-text">
-                <span class="dot"></span> System Initializing...
-            </div>
-            <button class="action-btn" id="aid-btn" onclick="analyzeUser()" disabled>Get Aid</button>
+        <div id="result">
+            <div class="res-title">✨ Gemini Analysis</div>
+            <div id="res-content">Thinking...</div>
+        </div>
+
+        <div class="overlay">
+            <div class="status" id="status-text"><span class="dot"></span> Booting AI...</div>
+            <button class="btn" id="aid-btn" disabled>Get AI Aid</button>
         </div>
     </div>
 
-    <script>
+    <script type="module">
+        import { GoogleGenerativeAI } from "@google/generative-ai";
+
+        // --- CONFIGURATION ---
+        // TODO: PASTE YOUR API KEY INSIDE THE QUOTES BELOW!
+        const API_KEY = "AIzaSyD_bB_IIVnY3LlHYfMRzZH_Ke1I1CwCiIw"; 
+        
+        const genAI = new GoogleGenerativeAI(API_KEY);
+        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+
         const video = document.getElementById('video');
         const statusText = document.getElementById('status-text');
         const statusDot = document.querySelector('.dot');
         const aidBtn = document.getElementById('aid-btn');
-        const resultCard = document.getElementById('result-card');
-        const resultText = document.getElementById('result-text');
+        const resultBox = document.getElementById('result');
+        const resultContent = document.getElementById('res-content');
 
-        let isModelsLoaded = false;
         let isFaceDetected = false;
+        let isModelsLoaded = false;
 
-        startVideo();
+        // Start System
+        startCamera();
 
-        function startVideo() {
-            updateStatus("Starting Camera...", "warning");
+        function startCamera() {
+            setStatus("Starting Camera...", "yellow");
             navigator.mediaDevices.getUserMedia({ video: {} })
                 .then(stream => {
                     video.srcObject = stream;
-                    video.addEventListener('loadedmetadata', () => {
-                        updateStatus("Loading AI Models...", "warning");
-                        loadModels();
-                    });
+                    video.addEventListener('loadedmetadata', loadFaceAI);
                 })
-                .catch(err => {
-                    console.error(err);
-                    updateStatus("Camera Access Denied", "error");
-                });
+                .catch(err => setStatus("Camera Blocked!", "red"));
         }
 
-        async function loadModels() {
+        async function loadFaceAI() {
+            setStatus("Loading Brain...", "yellow");
             try {
-                // Ensure this path is correct!
                 await faceapi.nets.tinyFaceDetector.loadFromUri('./models');
-                await faceapi.nets.faceLandmark68Net.loadFromUri('./models');
-                
+                // We skip landmarks for speed, detector is enough for the box
                 isModelsLoaded = true;
-                updateStatus("Scanning...", "warning");
-                startTracking();
-            } catch (err) {
-                console.error(err);
-                alert("Error: Check './models' folder. See Console (F12).");
+                setStatus("Scanning...", "yellow");
+                startLoop();
+            } catch (e) {
+                alert("Error: Missing './models' folder!");
             }
         }
 
-        function startTracking() {
-            const wrapper = document.getElementById('camera-wrapper');
+        function startLoop() {
+            const wrapper = document.getElementById('cam-wrapper');
             const canvas = faceapi.createCanvasFromMedia(video);
-            
-            // Force canvas to sit on top
-            canvas.style.position = 'absolute';
-            canvas.style.left = '0';
-            canvas.style.top = '0';
+            // Force canvas to match video perfectly
+            canvas.style.width = '100%'; 
+            canvas.style.height = '100%';
             wrapper.append(canvas);
             
             const displaySize = { width: video.videoWidth, height: video.videoHeight };
             faceapi.matchDimensions(canvas, displaySize);
 
+            // FASTER LOOP (50ms) + LOWER THRESHOLD (0.2) = "Always Detects"
             setInterval(async () => {
                 if (!isModelsLoaded) return;
 
-                const options = new faceapi.TinyFaceDetectorOptions({ inputSize: 320, scoreThreshold: 0.3 });
+                // inputSize 224 is slightly less accurate but MUCH faster/smoother
+                const options = new faceapi.TinyFaceDetectorOptions({ inputSize: 224, scoreThreshold: 0.2 });
+                const detections = await faceapi.detectAllFaces(video, options);
+                
+                const ctx = canvas.getContext('2d');
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-                try {
-                    const detections = await faceapi.detectAllFaces(video, options);
-                    const ctx = canvas.getContext('2d');
-                    ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-                    if (detections.length > 0) {
-                        if (!isFaceDetected) {
-                            isFaceDetected = true;
-                            updateStatus("Face Detected", "success");
-                            aidBtn.disabled = false;
-                        }
-
-                        // Resize to match video size
-                        const resizedDetections = faceapi.resizeResults(detections, displaySize);
-                        
-                        resizedDetections.forEach(det => {
-                            const box = det.detection.box;
-                            
-                            // ----------------------------------------
-                            // MIRROR MATH (The Logic Fix)
-                            // ----------------------------------------
-                            const mirroredX = canvas.width - box.x - box.width;
-
-                            // Draw Custom Box
-                            ctx.beginPath();
-                            ctx.lineWidth = 5;
-                            ctx.strokeStyle = '#8AB4F8'; // Bright Blue
-                            ctx.shadowColor = '#8AB4F8';
-                            ctx.shadowBlur = 15;
-                            ctx.strokeRect(mirroredX, box.y, box.width, box.height);
-                            ctx.stroke();
-                        });
-
-                    } else {
-                        if (isFaceDetected) {
-                            isFaceDetected = false;
-                            updateStatus("Scanning...", "warning");
-                            aidBtn.disabled = true;
-                            resultCard.style.display = 'none';
-                        }
+                if (detections.length > 0) {
+                    if (!isFaceDetected) {
+                        isFaceDetected = true;
+                        setStatus("Beneficiary Detected", "green");
+                        aidBtn.disabled = false;
                     }
-                } catch (err) {
-                    console.error("Tracking Error:", err);
+                    
+                    const resized = faceapi.resizeResults(detections, displaySize);
+                    
+                    // Draw Box
+                    resized.forEach(det => {
+                        const box = det.detection.box;
+                        ctx.beginPath();
+                        ctx.lineWidth = 4;
+                        ctx.strokeStyle = '#8AB4F8'; // Google Blue
+                        ctx.shadowColor = '#8AB4F8';
+                        ctx.shadowBlur = 15;
+                        ctx.strokeRect(box.x, box.y, box.width, box.height);
+                        ctx.stroke();
+                    });
+                } else {
+                    if (isFaceDetected) {
+                        isFaceDetected = false;
+                        setStatus("Scanning...", "yellow");
+                        aidBtn.disabled = true;
+                        resultBox.style.display = 'none';
+                    }
                 }
-            }, 100);
+            }, 50); // Checks 20 times per second
         }
 
-        function analyzeUser() {
-            if (!isFaceDetected) return;
-            resultCard.style.display = "block";
-            resultText.innerHTML = "<i>Connecting to Gemini...</i>";
-
-            setTimeout(() => {
-                resultText.innerHTML = `
-                    <div style="margin-bottom:8px;"><strong>ID:</strong> User_892</div>
-                    <div><strong>Gemini Suggestion:</strong></div>
-                    <ul style="padding-left: 20px; margin: 5px 0;">
-                        <li><span class="highlight">Winter Coat</span> (Prioritized)</li>
-                        <li><span class="highlight">Vitamin C Kit</span></li>
-                    </ul>
-                `;
-            }, 1500);
-        }
-
-        function updateStatus(msg, type) {
-            statusText.innerHTML = `<span class="dot"></span> ${msg}`;
-            const statusEl = document.getElementById('status-text');
-            
-            statusEl.style.color = 'var(--warning)';
-            statusDot.style.backgroundColor = 'var(--warning)';
-            statusDot.style.boxShadow = '0 0 10px var(--warning)';
-
-            if (type === 'success') {
-                statusEl.style.color = 'var(--success)';
-                statusDot.style.backgroundColor = 'var(--success)';
-                statusDot.style.boxShadow = '0 0 10px var(--success)';
-            } else if (type === 'error') {
-                statusEl.style.color = '#FF5252';
-                statusDot.style.backgroundColor = '#FF5252';
+        // --- REAL GEMINI CALL ---
+        aidBtn.addEventListener('click', async () => {
+            if (!API_KEY.startsWith("AIza")) {
+                alert("Please edit the code and paste your Google Gemini API Key first!");
+                return;
             }
+
+            resultBox.style.display = "block";
+            resultContent.innerHTML = "<i>Analyzing History & Environment...</i>";
+
+            // 1. Simulate pulling user history from Database (Firestore)
+            // In a real app, you would use the Face ID to fetch this.
+            const simulatedUserHistory = {
+                last_visit: "3 days ago",
+                received_items: ["Sandwich", "Water"],
+                health_notes: "Mild cough observed last week",
+                current_weather: "Rainy, 10°C"
+            };
+
+            // 2. The Prompt for Gemini
+            const prompt = `
+                You are a helpful AI assistant at a homeless shelter.
+                Analyze this beneficiary's data: ${JSON.stringify(simulatedUserHistory)}.
+                
+                Task: Suggest 2 critical aid items they need RIGHT NOW based on weather and history.
+                Keep it short (max 20 words). Format as HTML bullets.
+            `;
+
+            try {
+                // 3. Call the API
+                const result = await model.generateContent(prompt);
+                const response = await result.response;
+                const text = response.text();
+                
+                // 4. Show Result
+                resultContent.innerHTML = text; // Gemini writes the HTML
+            } catch (error) {
+                console.error(error);
+                resultContent.innerHTML = "Error connecting to AI. Check Console.";
+            }
+        });
+
+        function setStatus(msg, colorType) {
+            statusText.innerHTML = `<span class="dot"></span> ${msg}`;
+            const colors = { yellow: "#FDD663", green: "#81C995", red: "#FF5252" };
+            const c = colors[colorType];
+            statusText.style.color = c;
+            statusDot.style.background = c;
+            statusDot.style.boxShadow = `0 0 10px ${c}`;
         }
     </script>
 </body>
