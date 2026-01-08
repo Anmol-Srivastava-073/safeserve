@@ -254,8 +254,6 @@
             navigator.mediaDevices.getUserMedia({ video: {} })
                 .then(stream => {
                     video.srcObject = stream;
-                    
-                    // Important: Wait for video to have actual dimensions
                     video.addEventListener('loadedmetadata', () => {
                         updateStatus("Loading AI Models...", "warning");
                         loadModels();
@@ -263,28 +261,26 @@
                 })
                 .catch(err => {
                     console.error(err);
-                    updateStatus("Camera Denied. Check Permissions.", "error");
+                    updateStatus("Camera Denied.", "error");
                 });
         }
 
         // --- 2. LOAD AI ---
         async function loadModels() {
             try {
-                // Point to your local folder
                 await faceapi.nets.tinyFaceDetector.loadFromUri('./models');
-                await faceapi.nets.faceLandmark68Net.loadFromUri('./models');
+                await faceapi.nets.faceLandmark68Net.loadFromUri('./models'); // Optional
                 
                 isModelsLoaded = true;
-                updateStatus("Scanning for Beneficiary...", "warning");
+                updateStatus("Scanning...", "warning");
                 startTracking();
             } catch (err) {
                 console.error(err);
-                updateStatus("Error: Missing Model Files", "error");
-                alert("Please check your './models' folder contains the detector files.");
+                alert("Error: Model files missing in './models'");
             }
         }
 
-        // --- 3. THE LOOP ---
+        // --- 3. THE TRACKING LOOP ---
         function startTracking() {
             const wrapper = document.getElementById('camera-wrapper');
             const canvas = faceapi.createCanvasFromMedia(video);
@@ -296,65 +292,66 @@
             setInterval(async () => {
                 if (!isModelsLoaded) return;
 
-                // TinyFaceDetector options: inputSize 320 is faster
                 const options = new faceapi.TinyFaceDetectorOptions({ inputSize: 320, scoreThreshold: 0.3 });
 
                 try {
                     const detections = await faceapi.detectAllFaces(video, options);
-
-                    // CLEAR CANVAS
                     const ctx = canvas.getContext('2d');
                     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
                     if (detections.length > 0) {
-                        // FACE FOUND
                         if (!isFaceDetected) {
                             isFaceDetected = true;
-                            updateStatus("Face Detected. Ready.", "success");
-                            aidBtn.disabled = false; // Enable button
+                            updateStatus("Face Detected", "success");
+                            aidBtn.disabled = false;
                         }
 
+                        // Resize detections to match display size
                         const resizedDetections = faceapi.resizeResults(detections, displaySize);
-
-                        // --- MIRROR FLIP MAGIC ---
-                        ctx.save();
-                        // 1. Flip horizontally
-                        ctx.scale(-1, 1);
-                        // 2. Move drawing origin back into view
-                        ctx.translate(-canvas.width, 0);
                         
-                        // 3. Draw the blue box
-                        faceapi.draw.drawDetections(canvas, resizedDetections);
-                        ctx.restore();
-                        // -------------------------
+                        // --- MANUAL DRAWING (THE FIX) ---
+                        // We loop through faces and draw the box manually using mirrored math
+                        resizedDetections.forEach(det => {
+                            const box = det.detection.box;
+                            
+                            // MIRROR MATH: Flip the X coordinate
+                            // NewX = TotalWidth - OldX - BoxWidth
+                            const mirroredX = canvas.width - box.x - box.width;
+
+                            // Draw the Custom Google-Blue Box
+                            ctx.beginPath();
+                            ctx.lineWidth = 4;
+                            ctx.strokeStyle = '#8AB4F8'; // Google Blue
+                            ctx.shadowBlur = 10;
+                            ctx.shadowColor = '#8AB4F8'; // Glow effect
+                            
+                            // strokeRect(x, y, width, height)
+                            ctx.strokeRect(mirroredX, box.y, box.width, box.height);
+                            ctx.stroke();
+                        });
 
                     } else {
-                        // NO FACE
                         if (isFaceDetected) {
                             isFaceDetected = false;
                             updateStatus("Scanning...", "warning");
-                            aidBtn.disabled = true; // Disable button
-                            resultCard.style.display = 'none'; // Hide popup if they leave
+                            aidBtn.disabled = true;
+                            resultCard.style.display = 'none';
                         }
                     }
                 } catch (err) {
-                    console.error("Tracking Error:", err);
+                    console.error("Loop Error:", err);
                 }
             }, 100);
         }
 
-        // --- 4. THE DEMO ACTION ---
+        // --- 4. ACTION ---
         function analyzeUser() {
             if (!isFaceDetected) return;
 
-            // Show Loading State
             resultCard.style.display = "block";
             resultText.innerHTML = "<i>Consulting Gemini AI...</i>";
 
-            // Simulate Network Delay (1.5s)
             setTimeout(() => {
-                // This is where you would call the real API
-                // For now, we simulate a response
                 resultText.innerHTML = `
                     <div style="margin-bottom:8px;">Identity: <strong>Anonymous #892</strong></div>
                     <div>Based on history and current weather (2°C):</div>
@@ -366,25 +363,22 @@
             }, 1500);
         }
 
-        // Helper to update UI text/colors
         function updateStatus(msg, type) {
             statusText.innerHTML = `<span class="dot"></span> ${msg}`;
             const statusEl = document.getElementById('status-text');
             
+            // Reset colors
+            statusEl.style.color = 'var(--warning)';
+            statusDot.style.backgroundColor = 'var(--warning)';
+            statusDot.style.boxShadow = '0 0 8px var(--warning)';
+
             if (type === 'success') {
-                statusEl.classList.add('active');
                 statusEl.style.color = 'var(--success)';
                 statusDot.style.backgroundColor = 'var(--success)';
                 statusDot.style.boxShadow = '0 0 8px var(--success)';
             } else if (type === 'error') {
-                statusEl.classList.remove('active');
-                statusEl.style.color = '#FF5252'; // Red
+                statusEl.style.color = '#FF5252';
                 statusDot.style.backgroundColor = '#FF5252';
-            } else {
-                statusEl.classList.remove('active');
-                statusEl.style.color = 'var(--warning)';
-                statusDot.style.backgroundColor = 'var(--warning)';
-                statusDot.style.boxShadow = '0 0 8px var(--warning)';
             }
         }
     </script>
