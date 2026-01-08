@@ -77,12 +77,13 @@
             z-index: 10; 
         }
 
-        /* UI OVERLAY - BUTTON IS HERE */
+        /* UI OVERLAY - THE FIX IS HERE */
         .overlay {
             position: absolute; 
             bottom: 30px; 
             left: 50%; 
-            transform: translateX(50%); /* Un-flip text */
+            /* FIXED: Use -50% to center it correctly. Previous code pushed it off screen */
+            transform: translateX(-50%); 
             width: 90%; 
             padding: 15px 25px; 
             background: rgba(32, 33, 36, 0.95);
@@ -90,8 +91,9 @@
             display: flex; 
             justify-content: space-between; 
             align-items: center;
-            z-index: 20; 
+            z-index: 30; /* High Z-Index ensures visibility */
             border: 1px solid rgba(255,255,255,0.1);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.5);
         }
 
         .status { 
@@ -100,6 +102,7 @@
             display: flex; 
             align-items: center; 
             gap: 10px; 
+            font-size: 16px;
         }
 
         .dot { 
@@ -110,7 +113,7 @@
             box-shadow: 0 0 10px var(--yellow); 
         }
 
-        /* BUTTON STYLING */
+        /* BUTTON STYLING - High Visibility */
         .btn { 
             background: var(--blue); 
             color: #000; 
@@ -120,15 +123,14 @@
             font-weight: bold; 
             cursor: pointer; 
             transition: 0.2s; 
-            border: 2px solid var(--blue); /* Ensure visibility */
+            font-size: 14px;
         }
         
-        /* Disabled state is now lighter so you can see it exists */
         .btn:disabled { 
-            background: transparent; 
-            color: #777; 
-            border-color: #555;
+            background: #444; 
+            color: #888; 
             cursor: not-allowed; 
+            border: 1px solid #555;
         }
         
         .btn:hover:not(:disabled) { 
@@ -209,7 +211,7 @@
         // ==========================================
         //  TODO: PASTE YOUR API KEY HERE !
         // ==========================================
-        const API_KEY = "PASTE_YOUR_GEMINI_API_KEY_HERE"; 
+        const API_KEY = "AIzaSyD_bB_IIVnY3LlHYfMRzZH_Ke1I1CwCiIw"; 
         
         let model;
         if(API_KEY.startsWith("AIza")) {
@@ -287,7 +289,7 @@
                         // DRAWING LOOP
                         resized.forEach(det => {
                             const box = det.detection.box;
-                            const score = Math.round(det.detection.score * 100); // Get Percentage
+                            const score = Math.round(det.detection.score * 100); 
 
                             // 1. Draw Box
                             ctx.beginPath();
@@ -302,13 +304,11 @@
                             ctx.fillStyle = '#8AB4F8';
                             ctx.fillRect(box.x, box.y - 25, 60, 25);
 
-                            // 3. Draw Percentage Text (Un-mirrored logic is hard, so we draw simple text)
-                            // Note: Because the whole wrapper is flipped, text will be backwards unless we flip it back.
-                            // Quick hack: Just draw it. If it's backwards, we apply a specific text fix.
-                            
+                            // 3. Draw Percentage Text
+                            // Quick fix for mirrored text: Flip context temporarily
                             ctx.save();
-                            ctx.translate(box.x + 30, box.y - 12); // Move to text center
-                            ctx.scale(-1, 1); // Flip text back so it's readable
+                            ctx.translate(box.x + 30, box.y - 12); 
+                            ctx.scale(-1, 1); 
                             ctx.fillStyle = '#000';
                             ctx.font = 'bold 14px Roboto';
                             ctx.textAlign = 'center';
