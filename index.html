@@ -32,12 +32,14 @@
             width: 100%;
             height: 100%;
             object-fit: cover;
+            transform: scaleX(-1);
         }
 
         canvas {
             position: absolute;
             top: 0;
             left: 0;
+            transform: scaleX(-1);
         }
 
         .ui-overlay {
@@ -150,23 +152,32 @@
                 faceapi.matchDimensions(canvas, displaySize);
 
                 setInterval(async () => {
-                    const detections = await faceapi.detectAllFaces(video, new faceapi.TinyFaceDetectorOptions())
-                        .withFaceLandmarks();
-
-                    // Check if face is present for our Logic
-                    if (detections.length > 0) {
-                        isFaceDetected = true;
-                        statusText.innerText = "Status: Face Detected - Ready for Gemini";
-                        statusText.style.color = "green";
-                    } else {
-                        isFaceDetected = false;
-                        statusText.innerText = "Status: Scanning...";
-                        statusText.style.color = "#333";
-                    }
+                    // FIX: We removed .withFaceLandmarks() to prevent crashes if that file is missing
+                    // FIX: We added options to be more sensitive (scoreThreshold: 0.3)
+                    const options = new faceapi.TinyFaceDetectorOptions({ inputSize: 512, scoreThreshold: 0.3 });
                     
-                    const resizedDetections = faceapi.resizeResults(detections, displaySize);
-                    canvas.getContext('2d').clearRect(0, 0, canvas.width, canvas.height);
-                    faceapi.draw.drawDetections(canvas, resizedDetections);
+                    try {
+                        const detections = await faceapi.detectAllFaces(video, options);
+
+                        // Debug Log: Check your browser console (F12) to see if this prints
+                        console.log("Faces found:", detections.length); 
+
+                        if (detections.length > 0) {
+                            isFaceDetected = true;
+                            statusText.innerText = "Status: Face Detected! (Blue Box should appear)";
+                            statusText.style.color = "#00FF00"; // Bright Green
+                        } else {
+                            isFaceDetected = false;
+                            statusText.innerText = "Status: Scanning... (Move closer to light)";
+                            statusText.style.color = "#FFF";
+                        }
+                        
+                        const resizedDetections = faceapi.resizeResults(detections, displaySize);
+                        canvas.getContext('2d').clearRect(0, 0, canvas.width, canvas.height);
+                        faceapi.draw.drawDetections(canvas, resizedDetections);
+                    } catch (err) {
+                        console.error("Detection Loop Error:", err);
+                    }
                 }, 100);
             });
         }
