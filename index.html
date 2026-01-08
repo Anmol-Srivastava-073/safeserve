@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SafeServe | Real AI Connected</title>
     <style>
-        /* --- GOOGLE MATERIAL THEME --- */
+        /* --- THEME --- */
         :root { 
             --bg: #202124; 
             --card: #303134; 
@@ -49,7 +49,7 @@
         }
         .logo span { color: var(--blue); font-weight: bold; }
 
-        /* CAMERA AREA - THE MIRROR FIX */
+        /* CAMERA AREA */
         #cam-wrapper {
             position: relative; 
             flex-grow: 1; 
@@ -59,8 +59,7 @@
             justify-content: center; 
             align-items: center;
             
-            /* CRITICAL: We flip the whole container (Video + Box) here */
-            /* This ensures the box always stays on the face */
+            /* MIRROR FIX: Flips video + box together */
             transform: scaleX(-1); 
         }
 
@@ -78,12 +77,12 @@
             z-index: 10; 
         }
 
-        /* UI OVERLAY */
+        /* UI OVERLAY - BUTTON IS HERE */
         .overlay {
             position: absolute; 
             bottom: 30px; 
             left: 50%; 
-            transform: translateX(50%); /* Counter-flip text so it is readable */
+            transform: translateX(50%); /* Un-flip text */
             width: 90%; 
             padding: 15px 25px; 
             background: rgba(32, 33, 36, 0.95);
@@ -111,6 +110,7 @@
             box-shadow: 0 0 10px var(--yellow); 
         }
 
+        /* BUTTON STYLING */
         .btn { 
             background: var(--blue); 
             color: #000; 
@@ -120,11 +120,14 @@
             font-weight: bold; 
             cursor: pointer; 
             transition: 0.2s; 
+            border: 2px solid var(--blue); /* Ensure visibility */
         }
         
+        /* Disabled state is now lighter so you can see it exists */
         .btn:disabled { 
-            background: #555; 
-            color: #888; 
+            background: transparent; 
+            color: #777; 
+            border-color: #555;
             cursor: not-allowed; 
         }
         
@@ -206,10 +209,9 @@
         // ==========================================
         //  TODO: PASTE YOUR API KEY HERE !
         // ==========================================
-        const API_KEY = "AIzaSyD_bB_IIVnY3LlHYfMRzZH_Ke1I1CwCiIw"; 
+        const API_KEY = "PASTE_YOUR_GEMINI_API_KEY_HERE"; 
         
         let model;
-        // Initialize Gemini only if key is present
         if(API_KEY.startsWith("AIza")) {
              const genAI = new GoogleGenerativeAI(API_KEY);
              model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
@@ -225,7 +227,6 @@
         let isFaceDetected = false;
         let isModelsLoaded = false;
 
-        // Start System
         startCamera();
 
         function startCamera() {
@@ -241,9 +242,7 @@
         async function loadFaceAI() {
             setStatus("Loading Brain...", "yellow");
             try {
-                // Ensure the path to your models is correct
                 await faceapi.nets.tinyFaceDetector.loadFromUri('./models');
-                
                 isModelsLoaded = true;
                 setStatus("Scanning...", "yellow");
                 startLoop();
@@ -257,7 +256,6 @@
             const wrapper = document.getElementById('cam-wrapper');
             const canvas = faceapi.createCanvasFromMedia(video);
             
-            // Force canvas to match video perfectly
             canvas.style.width = '100%'; 
             canvas.style.height = '100%';
             wrapper.append(canvas);
@@ -265,13 +263,10 @@
             const displaySize = { width: video.videoWidth, height: video.videoHeight };
             faceapi.matchDimensions(canvas, displaySize);
 
-            // ==========================================
-            //  SPEED SETTING: 50ms (20 FPS)
-            // ==========================================
+            // 50ms SPEED LOOP
             setInterval(async () => {
                 if (!isModelsLoaded) return;
 
-                // inputSize 160 = Fast. scoreThreshold 0.2 = Sensitive.
                 const options = new faceapi.TinyFaceDetectorOptions({ inputSize: 160, scoreThreshold: 0.2 });
                 
                 try {
@@ -289,9 +284,12 @@
                         
                         const resized = faceapi.resizeResults(detections, displaySize);
                         
-                        // DRAW THE BLUE BOX
+                        // DRAWING LOOP
                         resized.forEach(det => {
                             const box = det.detection.box;
+                            const score = Math.round(det.detection.score * 100); // Get Percentage
+
+                            // 1. Draw Box
                             ctx.beginPath();
                             ctx.lineWidth = 4;
                             ctx.strokeStyle = '#8AB4F8'; // Google Blue
@@ -299,7 +297,25 @@
                             ctx.shadowBlur = 15;
                             ctx.strokeRect(box.x, box.y, box.width, box.height);
                             ctx.stroke();
+
+                            // 2. Draw Percentage Background
+                            ctx.fillStyle = '#8AB4F8';
+                            ctx.fillRect(box.x, box.y - 25, 60, 25);
+
+                            // 3. Draw Percentage Text (Un-mirrored logic is hard, so we draw simple text)
+                            // Note: Because the whole wrapper is flipped, text will be backwards unless we flip it back.
+                            // Quick hack: Just draw it. If it's backwards, we apply a specific text fix.
+                            
+                            ctx.save();
+                            ctx.translate(box.x + 30, box.y - 12); // Move to text center
+                            ctx.scale(-1, 1); // Flip text back so it's readable
+                            ctx.fillStyle = '#000';
+                            ctx.font = 'bold 14px Roboto';
+                            ctx.textAlign = 'center';
+                            ctx.fillText(`${score}%`, 0, 5);
+                            ctx.restore();
                         });
+
                     } else {
                         if (isFaceDetected) {
                             isFaceDetected = false;
@@ -309,12 +325,12 @@
                         }
                     }
                 } catch (err) {
-                    // Swallow errors during frame skips
+                    // Ignore errors
                 }
-            }, 50); // <--- 50ms Update Speed
+            }, 50); 
         }
 
-        // --- REAL GEMINI CALL ---
+        // --- GEMINI ACTION ---
         aidBtn.addEventListener('click', async () => {
             if (!model) {
                 alert("You need to add your API Key in the code first!");
@@ -324,7 +340,6 @@
             resultBox.style.display = "block";
             resultContent.innerHTML = "<i>Analyzing History & Environment...</i>";
 
-            // 1. Simulate pulling user history (In real app, fetch from Firestore)
             const simulatedUserHistory = {
                 id: "user_892",
                 last_visit: "3 days ago",
@@ -332,7 +347,6 @@
                 current_weather: "Rainy, 10°C"
             };
 
-            // 2. The Prompt
             const prompt = `
                 Act as an empathetic aid worker. 
                 Data: ${JSON.stringify(simulatedUserHistory)}.
@@ -341,7 +355,6 @@
             `;
 
             try {
-                // 3. Call Google AI
                 const result = await model.generateContent(prompt);
                 const text = result.response.text();
                 resultContent.innerHTML = text; 
@@ -351,13 +364,11 @@
             }
         });
 
-        // Helper for Status UI
         function setStatus(msg, colorType) {
             statusText.innerHTML = `<span class="dot"></span> ${msg}`;
             const colors = { yellow: "#FDD663", green: "#81C995", red: "#FF5252" };
             const c = colors[colorType];
             
-            // Apply colors
             statusText.style.color = c;
             statusDot.style.background = c;
             statusDot.style.boxShadow = `0 0 10px ${c}`;
