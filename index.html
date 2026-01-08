@@ -3,190 +3,40 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SafeServe | Real AI Connected</title>
+    <title>SafeServe | Vision AI</title>
     <style>
         /* --- THEME --- */
-        :root { 
-            --bg: #202124; 
-            --card: #303134; 
-            --blue: #8AB4F8; 
-            --green: #81C995; 
-            --yellow: #FDD663; 
-            --red: #FF5252;
-        }
-
-        body { 
-            margin: 0; 
-            display: flex; 
-            justify-content: center; 
-            align-items: center; 
-            height: 100vh; 
-            background: var(--bg); 
-            font-family: 'Roboto', sans-serif; 
-            color: #E8EAED; 
-        }
-        
-        #app {
-            position: relative; 
-            width: 800px; 
-            height: 600px; 
-            background: var(--card);
-            border-radius: 24px; 
-            overflow: hidden; 
-            display: flex; 
-            flex-direction: column;
-            box-shadow: 0 20px 50px rgba(0,0,0,0.6);
-        }
-
-        /* HEADER */
-        .header { 
-            padding: 15px 30px; 
-            background: rgba(0,0,0,0.3); 
-            display: flex; 
-            justify-content: space-between; 
-            align-items: center; 
-            z-index: 20; 
-        }
+        :root { --bg: #202124; --card: #303134; --blue: #8AB4F8; --green: #81C995; --yellow: #FDD663; --red: #FF5252; }
+        body { margin: 0; display: flex; justify-content: center; align-items: center; height: 100vh; background: var(--bg); font-family: 'Roboto', sans-serif; color: #E8EAED; }
+        #app { position: relative; width: 800px; height: 600px; background: var(--card); border-radius: 24px; overflow: hidden; display: flex; flex-direction: column; box-shadow: 0 20px 50px rgba(0,0,0,0.6); }
+        .header { padding: 15px 30px; background: rgba(0,0,0,0.3); display: flex; justify-content: space-between; align-items: center; z-index: 20; }
         .logo span { color: var(--blue); font-weight: bold; }
-
-        /* CAMERA AREA */
-        #cam-wrapper {
-            position: relative; 
-            flex-grow: 1; 
-            background: #000; 
-            overflow: hidden;
-            display: flex; 
-            justify-content: center; 
-            align-items: center;
-            
-            /* MIRROR FIX: Flips video + box together */
-            transform: scaleX(-1); 
-        }
-
-        video { 
-            position: absolute; 
-            width: 100%; 
-            height: 100%; 
-            object-fit: cover; 
-        }
-
-        canvas { 
-            position: absolute; 
-            top: 0; 
-            left: 0; 
-            z-index: 10; 
-        }
-
-        /* UI OVERLAY - THE FIX IS HERE */
-        .overlay {
-            position: absolute; 
-            bottom: 30px; 
-            left: 50%; 
-            /* FIXED: Use -50% to center it correctly. Previous code pushed it off screen */
-            transform: translateX(-50%); 
-            width: 90%; 
-            padding: 15px 25px; 
-            background: rgba(32, 33, 36, 0.95);
-            border-radius: 16px; 
-            display: flex; 
-            justify-content: space-between; 
-            align-items: center;
-            z-index: 30; /* High Z-Index ensures visibility */
-            border: 1px solid rgba(255,255,255,0.1);
-            box-shadow: 0 10px 20px rgba(0,0,0,0.5);
-        }
-
-        .status { 
-            font-weight: 500; 
-            color: var(--yellow); 
-            display: flex; 
-            align-items: center; 
-            gap: 10px; 
-            font-size: 16px;
-        }
-
-        .dot { 
-            width: 10px; 
-            height: 10px; 
-            border-radius: 50%; 
-            background: var(--yellow); 
-            box-shadow: 0 0 10px var(--yellow); 
-        }
-
-        /* BUTTON STYLING - High Visibility */
-        .btn { 
-            background: var(--blue); 
-            color: #000; 
-            border: none; 
-            padding: 12px 24px; 
-            border-radius: 30px; 
-            font-weight: bold; 
-            cursor: pointer; 
-            transition: 0.2s; 
-            font-size: 14px;
-        }
-        
-        .btn:disabled { 
-            background: #444; 
-            color: #888; 
-            cursor: not-allowed; 
-            border: 1px solid #555;
-        }
-        
-        .btn:hover:not(:disabled) { 
-            background: #AECBFA; 
-            box-shadow: 0 0 15px var(--blue); 
-        }
-
-        /* RESULT POPUP */
-        #result {
-            display: none; 
-            position: absolute; 
-            top: 20px; 
-            right: 20px; 
-            width: 320px;
-            background: var(--card); 
-            padding: 20px; 
-            border-radius: 12px;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.6); 
-            z-index: 30; 
-            border: 1px solid rgba(255,255,255,0.1);
-            animation: popIn 0.3s ease-out;
-        }
-
-        @keyframes popIn { 
-            from {opacity:0; transform:translateY(-10px);} 
-            to {opacity:1; transform:translateY(0);} 
-        }
-
-        .res-title { 
-            font-size: 12px; 
-            color: var(--blue); 
-            font-weight: bold; 
-            margin-bottom: 8px; 
-            text-transform: uppercase; 
-            letter-spacing: 1px; 
-        }
-
+        #cam-wrapper { position: relative; flex-grow: 1; background: #000; overflow: hidden; display: flex; justify-content: center; align-items: center; transform: scaleX(-1); }
+        video { position: absolute; width: 100%; height: 100%; object-fit: cover; }
+        canvas { position: absolute; top: 0; left: 0; z-index: 10; }
+        .overlay { position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%); width: 90%; padding: 15px 25px; background: rgba(32, 33, 36, 0.95); border-radius: 16px; display: flex; justify-content: space-between; align-items: center; z-index: 30; border: 1px solid rgba(255,255,255,0.1); box-shadow: 0 10px 20px rgba(0,0,0,0.5); }
+        .status { font-weight: 500; color: var(--yellow); display: flex; align-items: center; gap: 10px; font-size: 16px; }
+        .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--yellow); box-shadow: 0 0 10px var(--yellow); }
+        .btn { background: var(--blue); color: #000; border: none; padding: 12px 24px; border-radius: 30px; font-weight: bold; cursor: pointer; transition: 0.2s; font-size: 14px; }
+        .btn:disabled { background: #444; color: #888; cursor: not-allowed; border: 1px solid #555; }
+        .btn:hover:not(:disabled) { background: #AECBFA; box-shadow: 0 0 15px var(--blue); }
+        #result { display: none; position: absolute; top: 20px; right: 20px; width: 320px; background: var(--card); padding: 20px; border-radius: 12px; box-shadow: 0 10px 40px rgba(0,0,0,0.6); z-index: 30; border: 1px solid rgba(255,255,255,0.1); animation: popIn 0.3s ease-out; }
+        @keyframes popIn { from {opacity:0; transform:translateY(-10px);} to {opacity:1; transform:translateY(0);} }
+        .res-title { font-size: 12px; color: var(--blue); font-weight: bold; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 1px; }
         .res-body { font-size: 14px; line-height: 1.6; }
         strong { color: var(--green); }
     </style>
     
     <script type="importmap">
-      {
-        "imports": {
-          "@google/generative-ai": "https://esm.run/@google/generative-ai"
-        }
-      }
+      { "imports": { "@google/generative-ai": "https://esm.run/@google/generative-ai" } }
     </script>
-    
     <script defer src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
 </head>
 <body>
 
     <div id="app">
         <div class="header">
-            <div class="logo">SafeServe <span>AI</span></div>
+            <div class="logo">SafeServe <span>Vision</span></div>
             <div style="font-size: 12px; color: #aaa;">Status: Online</div>
         </div>
 
@@ -195,13 +45,13 @@
         </div>
 
         <div id="result">
-            <div class="res-title">✨ Gemini Analysis</div>
+            <div class="res-title">✨ Gemini Vision Analysis</div>
             <div id="res-content">Thinking...</div>
         </div>
 
         <div class="overlay">
             <div class="status" id="status-text"><span class="dot"></span> Booting AI...</div>
-            <button class="btn" id="aid-btn" disabled>Get AI Aid</button>
+            <button class="btn" id="aid-btn" disabled>Scan Face for Aid</button>
         </div>
     </div>
 
@@ -209,14 +59,15 @@
         import { GoogleGenerativeAI } from "@google/generative-ai";
 
         // ==========================================
-        //  TODO: PASTE YOUR API KEY HERE !
+        //  TODO: PASTE YOUR API KEY HERE
         // ==========================================
         const API_KEY = "AIzaSyD_bB_IIVnY3LlHYfMRzZH_Ke1I1CwCiIw"; 
         
         let model;
+        // We use 'gemini-1.5-flash' because it can SEE images
         if(API_KEY.startsWith("AIza")) {
              const genAI = new GoogleGenerativeAI(API_KEY);
-             model = genAI.getGenerativeModel({ model: "gemini-pro" });
+             model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
         }
 
         const video = document.getElementById('video');
@@ -257,23 +108,16 @@
         function startLoop() {
             const wrapper = document.getElementById('cam-wrapper');
             const canvas = faceapi.createCanvasFromMedia(video);
-            
-            canvas.style.width = '100%'; 
-            canvas.style.height = '100%';
+            canvas.style.width = '100%'; canvas.style.height = '100%';
             wrapper.append(canvas);
-            
             const displaySize = { width: video.videoWidth, height: video.videoHeight };
             faceapi.matchDimensions(canvas, displaySize);
 
-            // 50ms SPEED LOOP
             setInterval(async () => {
                 if (!isModelsLoaded) return;
-
                 const options = new faceapi.TinyFaceDetectorOptions({ inputSize: 160, scoreThreshold: 0.2 });
-                
                 try {
                     const detections = await faceapi.detectAllFaces(video, options);
-                    
                     const ctx = canvas.getContext('2d');
                     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
@@ -283,39 +127,30 @@
                             setStatus("Beneficiary Detected", "green");
                             aidBtn.disabled = false;
                         }
-                        
                         const resized = faceapi.resizeResults(detections, displaySize);
-                        
-                        // DRAWING LOOP
                         resized.forEach(det => {
                             const box = det.detection.box;
                             const score = Math.round(det.detection.score * 100); 
 
-                            // 1. Draw Box
+                            // Draw Box
                             ctx.beginPath();
                             ctx.lineWidth = 4;
-                            ctx.strokeStyle = '#8AB4F8'; // Google Blue
+                            ctx.strokeStyle = '#8AB4F8';
                             ctx.shadowColor = '#8AB4F8';
                             ctx.shadowBlur = 15;
                             ctx.strokeRect(box.x, box.y, box.width, box.height);
                             ctx.stroke();
 
-                            // 2. Draw Percentage Background
-                            ctx.fillStyle = '#8AB4F8';
-                            ctx.fillRect(box.x, box.y - 25, 60, 25);
-
-                            // 3. Draw Percentage Text
-                            // Quick fix for mirrored text: Flip context temporarily
+                            // Draw Text
                             ctx.save();
                             ctx.translate(box.x + 30, box.y - 12); 
                             ctx.scale(-1, 1); 
-                            ctx.fillStyle = '#000';
-                            ctx.font = 'bold 14px Roboto';
+                            ctx.fillStyle = '#8AB4F8';
+                            ctx.font = 'bold 16px Roboto';
                             ctx.textAlign = 'center';
-                            ctx.fillText(`${score}%`, 0, 5);
+                            ctx.fillText(`${score}%`, 0, 0);
                             ctx.restore();
                         });
-
                     } else {
                         if (isFaceDetected) {
                             isFaceDetected = false;
@@ -324,51 +159,77 @@
                             resultBox.style.display = 'none';
                         }
                     }
-                } catch (err) {
-                    // Ignore errors
-                }
+                } catch (err) {}
             }, 50); 
         }
 
-        // --- GEMINI ACTION ---
+        // ==========================================
+        //  NEW: GEMINI VISION ACTION
+        // ==========================================
         aidBtn.addEventListener('click', async () => {
-            if (!model) {
-                alert("You need to add your API Key in the code first!");
-                return;
-            }
+            if (!model) { alert("Missing API Key!"); return; }
 
             resultBox.style.display = "block";
-            resultContent.innerHTML = "<i>Analyzing History & Environment...</i>";
-
-            const simulatedUserHistory = {
-                id: "user_892",
-                last_visit: "3 days ago",
-                health_notes: "Recovering from flu",
-                current_weather: "Rainy, 10°C"
-            };
-
-            const prompt = `
-                Act as an empathetic aid worker. 
-                Data: ${JSON.stringify(simulatedUserHistory)}.
-                Task: Suggest 2 critical items to give this person right now.
-                Format: HTML bullet points. Keep it brief.
-            `;
+            resultContent.innerHTML = "<i>Capturing Image & Analyzing...</i>";
 
             try {
-                const result = await model.generateContent(prompt);
+                // 1. Capture the current video frame as an image
+                const imageBase64 = captureImage();
+                
+                // 2. Create the Prompt
+                const prompt = "Act as an empathetic community aid worker. Analyze the person in this image. Estimate their likely age group, emotional state (tired? stressed? happy?), and any visible needs (are they wearing warm clothes?). Based on this visual analysis and a hypothetical cold rainy day, suggest 2 distinct aid items (e.g., food, clothing, medical). Format as HTML bullets.";
+
+                // 3. Prepare data for Gemini 1.5 Flash
+                const imagePart = {
+                    inlineData: {
+                        data: imageBase64,
+                        mimeType: "image/jpeg"
+                    }
+                };
+
+                // 4. Send to AI
+                const result = await model.generateContent([prompt, imagePart]);
                 const text = result.response.text();
                 resultContent.innerHTML = text; 
+
             } catch (error) {
                 console.error(error);
-                resultContent.innerHTML = "Error connecting to AI. Check Console.";
+                // Fallback if Vision fails (e.g. 404 error)
+                resultContent.innerHTML = "<div style='color:orange'>Vision Error. Switching to Text Mode...</div>";
+                fallbackTextMode();
             }
         });
+
+        // Helper: Capture Video Frame to Base64 (No Header)
+        function captureImage() {
+            const canvas = document.createElement("canvas");
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            const ctx = canvas.getContext("2d");
+            // We need to flip it because the video is mirrored visually!
+            ctx.scale(-1, 1);
+            ctx.drawImage(video, -canvas.width, 0, canvas.width, canvas.height);
+            
+            // Get Data URL and strip the header
+            const dataUrl = canvas.toDataURL("image/jpeg", 0.8);
+            return dataUrl.split(",")[1]; // Returns just the base64 string
+        }
+
+        // Helper: Backup if Vision Fails
+        async function fallbackTextMode() {
+             const fallbackPrompt = "Suggest 2 aid items for a generic beneficiary in cold weather. HTML Bullets.";
+             try {
+                 const result = await model.generateContent(fallbackPrompt);
+                 resultContent.innerHTML = result.response.text();
+             } catch(e) {
+                 resultContent.innerHTML = "Connection Failed. Please check API Key.";
+             }
+        }
 
         function setStatus(msg, colorType) {
             statusText.innerHTML = `<span class="dot"></span> ${msg}`;
             const colors = { yellow: "#FDD663", green: "#81C995", red: "#FF5252" };
             const c = colors[colorType];
-            
             statusText.style.color = c;
             statusDot.style.background = c;
             statusDot.style.boxShadow = `0 0 10px ${c}`;
