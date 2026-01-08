@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>SafeServe - Face Station</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #202124; /* Google Dark Mode Grey */
+            font-family: 'Roboto', sans-serif;
+        }
+
+        #camera-container {
+            position: relative;
+            width: 720px;
+            height: 560px;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.5);
+            background: #000;
+        }
+
+        video {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+        }
+
+        /* The "UI Layer" for the Demo */
+        .ui-overlay {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            right: 20px;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .status {
+            font-weight: bold;
+            color: #333;
+        }
+
+        .btn {
+            background: #4285F4; /* Google Blue */
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+    </style>
+    <script defer src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
+</head>
+<body>
+
+    <div id="camera-container">
+        <video id="video" autoplay muted></video>
+        <div class="ui-overlay">
+            <div class="status" id="status-text">System Status: Loading AI Models...</div>
+            <button class="btn" onclick="analyzeUser()">Get AI Aid (Simulate)</button>
+        </div>
+    </div>
+
+    <script>
+        const video = document.getElementById('video');
+        const statusText = document.getElementById('status-text');
+
+        // --- STEP 1: FORCE CAMERA START FIRST ---
+        // This runs immediately, not waiting for AI
+        startVideo();
+
+        function startVideo() {
+            statusText.innerText = "Status: Requesting Camera Access...";
+            
+            navigator.mediaDevices.getUserMedia({ video: {} })
+                .then(stream => {
+                    video.srcObject = stream;
+                    statusText.innerText = "Status: Camera ON. Loading AI Models...";
+                    // Only load models AFTER camera is running
+                    loadModels();
+                })
+                .catch(err => {
+                    console.error("Camera Failed:", err);
+                    statusText.innerText = "Error: Camera Access Denied. Check Console (F12).";
+                    alert("Camera Error: " + err.name + "\nDid you run this on a Local Server?");
+                });
+        }
+
+        // --- STEP 2: LOAD AI MODELS ---
+        async function loadModels() {
+    try {
+        statusText.innerText = "Status: Downloading AI Models from Web...";
+        
+        // We use the official URL instead of a local folder
+        const MODEL_URL = 'https://justadudewhohacks.github.io/face-api.js/models';
+
+        await faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL);
+        await faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL);
+        await faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL);
+        
+        statusText.innerText = "Status: AI Ready! Tracking Face...";
+        startTracking();
+    } catch (err) {
+        console.error("Model Load Failed:", err);
+        statusText.innerText = "Error: Internet blocked. Check Console.";
+        alert("Could not download models from the internet.");
+    }
+}
+
+        function startTracking() {
+            video.addEventListener('play', () => {
+                const canvas = faceapi.createCanvasFromMedia(video);
+                document.getElementById('camera-container').append(canvas);
+                
+                const displaySize = { width: video.clientWidth, height: video.clientHeight };
+                faceapi.matchDimensions(canvas, displaySize);
+
+                setInterval(async () => {
+                    const detections = await faceapi.detectAllFaces(video, new faceapi.TinyFaceDetectorOptions()).withFaceLandmarks();
+                    const resizedDetections = faceapi.resizeResults(detections, displaySize);
+                    canvas.getContext('2d').clearRect(0, 0, canvas.width, canvas.height);
+                    faceapi.draw.drawDetections(canvas, resizedDetections);
+                }, 100);
+            });
+        }
+    </script>
+</body>
+</html>
