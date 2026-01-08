@@ -216,7 +216,7 @@
         let model;
         if(API_KEY.startsWith("AIza")) {
              const genAI = new GoogleGenerativeAI(API_KEY);
-             const model = genAI.getGenerativeModel({ model: "gemini-pro" });
+             model = genAI.getGenerativeModel({ model: "gemini-pro" });
         }
 
         const video = document.getElementById('video');
