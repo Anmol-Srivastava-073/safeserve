@@ -154,27 +154,33 @@
             setInterval(async () => {
                 if (!isModelsLoaded) return;
 
-                // TRY CHANGING THIS: inputSize must be divisible by 32. 
-                // 320 is faster/easier. 512 is more accurate.
-                // scoreThreshold: 0.2 is VERY sensitive (will detect almost anything)
                 const options = new faceapi.TinyFaceDetectorOptions({ inputSize: 320, scoreThreshold: 0.2 });
 
                 try {
                     const detections = await faceapi.detectAllFaces(video, options);
 
-                    // CLEAR CANVAS
-                    canvas.getContext('2d').clearRect(0, 0, canvas.width, canvas.height);
+                    // 1. Clear the canvas
+                    const ctx = canvas.getContext('2d');
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
 
                     if (detections.length > 0) {
-                        // SUCCESS
-                        statusText.innerText = `Status: FACE DETECTED! (Score: ${Math.round(detections[0].score * 100)}%)`;
-                        statusText.style.color = "#00FF00"; // Green
+                        statusText.innerText = `Status: FACE DETECTED!`;
+                        statusText.style.color = "#00FF00";
                         
                         const resizedDetections = faceapi.resizeResults(detections, displaySize);
+
+                        // 2. FLIP THE DRAWING CONTEXT
+                        // We save the current state, flip it, draw, and restore it.
+                        ctx.save();
+                        ctx.scale(-1, 1); // Flip horizontally
+                        ctx.translate(-canvas.width, 0); // Move it back into frame
+
+                        // 3. Draw the box (now it will match the mirrored video)
                         faceapi.draw.drawDetections(canvas, resizedDetections);
+                        
+                        ctx.restore(); // Restore to normal for next frame
                     } else {
-                        // FAIL
-                        statusText.innerText = "Status: Scanning... (No Face Found)";
+                        statusText.innerText = "Status: Scanning...";
                         statusText.style.color = "yellow";
                     }
                 } catch (err) {
@@ -182,7 +188,6 @@
                 }
             }, 100);
         }
-
         // 4. DEMO BUTTON
         function analyzeUser() {
             const status = statusText.innerText;
