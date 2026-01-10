@@ -1,50 +1,63 @@
-// server.js
+// server.js (The "No-Library" Version)
 const express = require('express');
-const path = require('path');
-const { GoogleGenerativeAI } = require('@google/generative-ai');
+const fetch = require('node-fetch'); // Standard fetch for Node
 require('dotenv').config();
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Middleware to parse JSON bodies (for the image data)
+// Middleware to parse JSON bodies (limit increased for images)
 app.use(express.json({ limit: '10mb' }));
-
-// Serve static files (HTML, CSS, Models) from the 'public' folder
 app.use(express.static('public'));
 
-// Initialize Gemini
-// This will fail safely if the key is missing during build, but works at runtime
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
-const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
-
-// The API Endpoint
 app.post('/api/analyze', async (req, res) => {
     try {
         const { image } = req.body;
+        const API_KEY = process.env.GEMINI_API_KEY;
 
-        if (!image) {
-            return res.status(400).send("No image provided");
-        }
+        if (!image) return res.status(400).send("No image provided");
+        if (!API_KEY) return res.status(500).send("Server missing API Key");
 
-        const prompt = "Act as an empathetic community aid worker. Analyze the person in this image. Estimate their likely age group, emotional state (tired? stressed? happy?), and any visible needs (are they wearing warm clothes?). Based on this visual analysis and a hypothetical cold rainy day, suggest 2 distinct aid items (e.g., food, clothing, medical). Format as HTML bullets.";
+        // 1. Direct URL to Google (Forces the correct v1beta version)
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${API_KEY}`;
 
-        const imagePart = {
-            inlineData: {
-                data: image,
-                mimeType: "image/jpeg"
-            }
+        // 2. Construct the specific JSON Google expects
+        const payload = {
+            contents: [{
+                parts: [
+                    { text: "Act as an empathetic community aid worker. Analyze the person in this image. Estimate their likely age group, emotional state (tired? stressed? happy?), and any visible needs (are they wearing warm clothes?). Based on this visual analysis and a hypothetical cold rainy day, suggest 2 distinct aid items (e.g., food, clothing, medical). Format as HTML bullets." },
+                    {
+                        inline_data: {
+                            mime_type: "image/jpeg",
+                            data: image
+                        }
+                    }
+                ]
+            }]
         };
 
-        const result = await model.generateContent([prompt, imagePart]);
-        const response = await result.response;
-        const text = response.text();
+        // 3. Send the request manually
+        const googleRes = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
 
+        const data = await googleRes.json();
+
+        // 4. Handle Errors from Google
+        if (!googleRes.ok) {
+            console.error("Google API Error:", JSON.stringify(data, null, 2));
+            return res.status(500).send(`AI Error: ${data.error?.message || "Unknown"}`);
+        }
+
+        // 5. Extract the text response
+        const text = data.candidates[0].content.parts[0].text;
         res.send(text);
 
     } catch (error) {
-        console.error("Gemini Error:", error);
-        res.status(500).send("Error analyzing image.");
+        console.error("Server Error:", error);
+        res.status(500).send("Internal Server Error");
     }
 });
 
