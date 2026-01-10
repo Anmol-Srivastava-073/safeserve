@@ -19,7 +19,7 @@ app.post('/api/analyze', async (req, res) => {
         if (!API_KEY) return res.status(500).send("Server missing API Key");
 
         // 1. Direct URL to Google (Forces the correct v1beta version)
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/emini-1.5-flash-001:generateContent?key=${GEMINI_API_KEY}`;
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/emini-1.5-flash-001:generateContent?key=${API_KEY}`;
 
         // 2. Construct the specific JSON Google expects
         const payload = {
