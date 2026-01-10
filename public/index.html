@@ -27,9 +27,6 @@
         strong { color: var(--green); }
     </style>
     
-    <script type="importmap">
-      { "imports": { "@google/generative-ai": "https://esm.run/@google/generative-ai" } }
-    </script>
     <script defer src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
 </head>
 <body>
@@ -56,20 +53,6 @@
     </div>
 
     <script type="module">
-        import { GoogleGenerativeAI } from "@google/generative-ai";
-
-        // ==========================================
-        //  TODO: PASTE YOUR API KEY HERE
-        // ==========================================
-        const API_KEY = "AIzaSyD_bB_IIVnY3LlHYfMRzZH_Ke1I1CwCiIw"; 
-        
-        let model;
-        // We use 'gemini-1.5-flash' because it can SEE images
-        if(API_KEY.startsWith("AIza")) {
-             const genAI = new GoogleGenerativeAI(API_KEY);
-             model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
-        }
-
         const video = document.getElementById('video');
         const statusText = document.getElementById('status-text');
         const statusDot = document.querySelector('.dot');
@@ -95,13 +78,14 @@
         async function loadFaceAI() {
             setStatus("Loading Brain...", "yellow");
             try {
+                // Ensure the 'models' folder is in public/models
                 await faceapi.nets.tinyFaceDetector.loadFromUri('./models');
                 isModelsLoaded = true;
                 setStatus("Scanning...", "yellow");
                 startLoop();
             } catch (e) {
                 console.error(e);
-                alert("Error: Missing './models' folder! Check console.");
+                alert("Error: Missing './models' folder inside 'public' directory!");
             }
         }
 
@@ -164,66 +148,42 @@
         }
 
         // ==========================================
-        //  NEW: GEMINI VISION ACTION
+        //  SECURE BACKEND CALL
         // ==========================================
         aidBtn.addEventListener('click', async () => {
-            if (!model) { alert("Missing API Key!"); return; }
-
             resultBox.style.display = "block";
-            resultContent.innerHTML = "<i>Capturing Image & Analyzing...</i>";
+            resultContent.innerHTML = "<i>Sending to Secure Server...</i>";
 
             try {
-                // 1. Capture the current video frame as an image
                 const imageBase64 = captureImage();
                 
-                // 2. Create the Prompt
-                const prompt = "Act as an empathetic community aid worker. Analyze the person in this image. Estimate their likely age group, emotional state (tired? stressed? happy?), and any visible needs (are they wearing warm clothes?). Based on this visual analysis and a hypothetical cold rainy day, suggest 2 distinct aid items (e.g., food, clothing, medical). Format as HTML bullets.";
+                // Fetch from our local server.js
+                const response = await fetch('/api/analyze', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ image: imageBase64 })
+                });
 
-                // 3. Prepare data for Gemini 1.5 Flash
-                const imagePart = {
-                    inlineData: {
-                        data: imageBase64,
-                        mimeType: "image/jpeg"
-                    }
-                };
+                if (!response.ok) throw new Error("Server Error");
 
-                // 4. Send to AI
-                const result = await model.generateContent([prompt, imagePart]);
-                const text = result.response.text();
+                const text = await response.text();
                 resultContent.innerHTML = text; 
 
             } catch (error) {
                 console.error(error);
-                // Fallback if Vision fails (e.g. 404 error)
-                resultContent.innerHTML = "<div style='color:orange'>Vision Error. Switching to Text Mode...</div>";
-                fallbackTextMode();
+                resultContent.innerHTML = "<div style='color:orange'>Server Connection Failed.</div>";
             }
         });
 
-        // Helper: Capture Video Frame to Base64 (No Header)
         function captureImage() {
             const canvas = document.createElement("canvas");
             canvas.width = video.videoWidth;
             canvas.height = video.videoHeight;
             const ctx = canvas.getContext("2d");
-            // We need to flip it because the video is mirrored visually!
             ctx.scale(-1, 1);
             ctx.drawImage(video, -canvas.width, 0, canvas.width, canvas.height);
-            
-            // Get Data URL and strip the header
             const dataUrl = canvas.toDataURL("image/jpeg", 0.8);
-            return dataUrl.split(",")[1]; // Returns just the base64 string
-        }
-
-        // Helper: Backup if Vision Fails
-        async function fallbackTextMode() {
-             const fallbackPrompt = "Suggest 2 aid items for a generic beneficiary in cold weather. HTML Bullets.";
-             try {
-                 const result = await model.generateContent(fallbackPrompt);
-                 resultContent.innerHTML = result.response.text();
-             } catch(e) {
-                 resultContent.innerHTML = "Connection Failed. Please check API Key.";
-             }
+            return dataUrl.split(",")[1];
         }
 
         function setStatus(msg, colorType) {
