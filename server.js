@@ -1,12 +1,12 @@
-// server.js (The "No-Library" Version)
+// server.js (Final Working Version)
 const express = require('express');
-const fetch = require('node-fetch'); // Standard fetch for Node
+// We do NOT need require('node-fetch') because Node v22 has it built-in!
 require('dotenv').config();
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Middleware to parse JSON bodies (limit increased for images)
+// Middleware
 app.use(express.json({ limit: '10mb' }));
 app.use(express.static('public'));
 
@@ -36,7 +36,7 @@ app.post('/api/analyze', async (req, res) => {
             }]
         };
 
-        // 3. Send the request manually
+        // 3. Send the request using Native Node Fetch
         const googleRes = await fetch(url, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
